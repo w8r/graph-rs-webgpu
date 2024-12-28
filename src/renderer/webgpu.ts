@@ -35,11 +35,12 @@ export class Renderer {
       alphaMode: "premultiplied",
     });
 
+    const max = 50;
     // Create view projection matrix that maps [-100,100] to [-1,1]
     // prettier-ignore
     const viewProjMatrix = new Float32Array([
-      1 / 150,       0, 0, 0, // scale x,
-      0,       1 / 150, 0, 0, // scale y
+      1 / max,       0, 0, 0, // scale x,
+      0,       1 / max, 0, 0, // scale y
       0,             0, 1, 0, // skew unused for 2D
       0,             0, 0, 1, // no translation yet
     ]);
