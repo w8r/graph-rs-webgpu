@@ -23,6 +23,7 @@ export class Renderer {
   private vertexBuffer!: GPUBuffer;
   private viewProjBuffer!: GPUBuffer;
   private bindGroup!: GPUBindGroup;
+  private quadBuffer!: GPUBuffer;
 
   constructor(private canvas: HTMLCanvasElement, private graph: Graph) {}
 
@@ -43,6 +44,25 @@ export class Renderer {
       format: navigator.gpu.getPreferredCanvasFormat(),
       alphaMode: "premultiplied",
     });
+
+    // Create static quad vertex buffer
+    // prettier-ignore
+    const quadVertices = new Float32Array([
+      -1, -1,  0, 0,  // first triangle: corner at (-1,-1) with UV (0,0)
+      1, -1,  1, 0,  // corner at (1,-1) with UV (1,0)
+      1,  1,  1, 1,  // corner at (1,1) with UV (1,1)
+     -1, -1,  0, 0,  // second triangle: repeats first corner
+      1,  1,  1, 1,  // repeats third corner
+     -1,  1,  0, 1   // corner at (-1,1) with UV (0,1)
+    ]);
+
+    this.quadBuffer = this.device.createBuffer({
+      size: quadVertices.byteLength,
+      usage: GPUBufferUsage.VERTEX,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.quadBuffer.getMappedRange()).set(quadVertices);
+    this.quadBuffer.unmap();
 
     const max = 50;
     // Create view projection matrix that maps [-100,100] to [-1,1]
@@ -98,32 +118,23 @@ export class Renderer {
         entryPoint: "main",
         buffers: [
           {
+            // Node data from Rust (instanced)
             arrayStride: 28, // 7 floats * 4 bytes
+            stepMode: "instance",
             attributes: [
-              {
-                // id
-                shaderLocation: 0,
-                offset: 0,
-                format: "float32",
-              },
-              {
-                // position (x,y)
-                shaderLocation: 1,
-                offset: 4,
-                format: "float32x2",
-              },
-              {
-                // radius
-                shaderLocation: 2,
-                offset: 12,
-                format: "float32",
-              },
-              {
-                // color (r,g,b)
-                shaderLocation: 3,
-                offset: 16,
-                format: "float32x3",
-              },
+              { shaderLocation: 0, offset: 0, format: "float32" }, // id
+              { shaderLocation: 1, offset: 4, format: "float32x2" }, // position
+              { shaderLocation: 2, offset: 12, format: "float32" }, // radius
+              { shaderLocation: 3, offset: 16, format: "float32x3" }, // color
+            ],
+          },
+          {
+            // Quad vertices (per vertex)
+            arrayStride: 16, // 4 floats * 4 bytes
+            stepMode: "vertex",
+            attributes: [
+              { shaderLocation: 4, offset: 0, format: "float32x2" }, // position
+              { shaderLocation: 5, offset: 8, format: "float32x2" }, // uv
             ],
           },
         ],
@@ -140,10 +151,12 @@ export class Renderer {
               color: {
                 srcFactor: "src-alpha",
                 dstFactor: "one-minus-src-alpha",
+                operation: "add",
               },
               alpha: {
                 srcFactor: "one",
                 dstFactor: "one-minus-src-alpha",
+                operation: "add",
               },
             },
           },
@@ -151,6 +164,7 @@ export class Renderer {
       },
       primitive: {
         topology: "point-list",
+        //stripIndexFormat: undefined,
       },
     });
   }
@@ -208,8 +222,11 @@ export class Renderer {
     renderPass.setPipeline(this.pipeline);
     renderPass.setBindGroup(0, this.bindGroup);
     renderPass.setVertexBuffer(0, this.vertexBuffer);
-    //renderPass.draw(1);
-    renderPass.draw(nodes.length / 7);
+    renderPass.setVertexBuffer(1, this.quadBuffer); // quad vertices
+
+    const nodeCount = this.graph.node_count();
+
+    renderPass.draw(nodeCount);
     renderPass.end();
 
     this.device.queue.submit([commandEncoder.finish()]);
