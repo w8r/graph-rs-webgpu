@@ -4,6 +4,8 @@ import { GraphBuffer } from "../src/graph_buffer";
 import path from "path";
 import fs from "fs";
 
+const toColor = (rgb: number[]) => new Float32Array(rgb);
+
 describe("Graph CRUD Operations", () => {
   const initialData = {
     nodes: [
@@ -56,7 +58,7 @@ describe("Graph CRUD Operations", () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
-    const result = graph.add_node(2, 15, 15, 4, [0.5, 0.5, 0.5]);
+    const result = graph.add_node(2, 15, 15, 4, toColor([0.5, 0.5, 0.5]));
     expect(result).toBe(true);
 
     const nodes = graph.get_nodes();
@@ -67,7 +69,7 @@ describe("Graph CRUD Operations", () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
-    const result = graph.add_node(0, 15, 15, 4, [0.5, 0.5, 0.5]);
+    const result = graph.add_node(0, 15, 15, 4, toColor([0.5, 0.5, 0.5]));
     expect(result).toBe(false);
   });
 
@@ -75,7 +77,7 @@ describe("Graph CRUD Operations", () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
-    const result = graph.add_edge(1, 0, 1, 2, [0.7, 0.7, 0.7]);
+    const result = graph.add_edge(1, 0, 1, 2, toColor([0.7, 0.7, 0.7]));
     expect(result).toBe(true);
 
     const edges = graph.get_edges();
@@ -86,7 +88,7 @@ describe("Graph CRUD Operations", () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
-    const result = graph.update_node(0, 5, 5, 6, [1, 0, 0]);
+    const result = graph.update_node(0, 5, 5, 6, toColor([1, 0, 0]));
     expect(result).toBe(true);
 
     const nodes = graph.get_nodes();
@@ -99,7 +101,7 @@ describe("Graph CRUD Operations", () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
-    const result = graph.update_edge(0, 2, [0, 1, 0]);
+    const result = graph.update_edge(0, 2, toColor([0, 1, 0]));
     expect(result).toBe(true);
 
     const edges = graph.get_edges();
@@ -137,8 +139,8 @@ describe("Graph CRUD Operations", () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
-    expect(graph.update_node(999, 0, 0, 0, [0, 0, 0])).toBe(false);
-    expect(graph.update_edge(999, 0, [0, 0, 0])).toBe(false);
+    expect(graph.update_node(999, 0, 0, 0, toColor([0, 0, 0]))).toBe(false);
+    expect(graph.update_edge(999, 0, toColor([0, 0, 0]))).toBe(false);
     expect(graph.remove_node(999)).toBe(false);
     expect(graph.remove_edge(999)).toBe(false);
   });
@@ -161,7 +163,7 @@ describe("Graph CRUD Operations", () => {
 
     const graph = new Graph(buffer);
     expect(graph.node_count()).toBe(2);
-    graph.add_node(2, 15, 15, 4, [0.5, 0.5, 0.5]);
+    graph.add_node(2, 15, 15, 4, toColor([0.5, 0.5, 0.5]));
     expect(graph.node_count()).toBe(3);
     expect(graph.edge_count()).toBe(1);
   });
