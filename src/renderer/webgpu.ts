@@ -1,8 +1,17 @@
 import { Graph } from "../../lib/pkg";
-import vertexShader from "./vertex.wgsl";
-import fragmentShader from "./fragment.wgsl";
+import vertexShader from "./vertex.wgsl?raw";
+import fragmentShader from "./fragment.wgsl?raw";
+import typesWgsl from "./types.wgsl?raw";
 
 console.log({ vertexShader });
+
+// Replace #include directives
+const processShader = (source: string) => {
+  return source.replace(/#include "([^"]+)"/g, (_, path) => {
+    if (path === "types.wgsl") return typesWgsl;
+    throw new Error(`Unknown include: ${path}`);
+  });
+};
 
 const getPixelRatio = () =>
   typeof window !== "undefined" ? window.devicePixelRatio : 1;
@@ -84,7 +93,7 @@ export class Renderer {
       layout: pipelineLayout,
       vertex: {
         module: this.device.createShaderModule({
-          code: vertexShader,
+          code: processShader(vertexShader),
         }),
         entryPoint: "main",
         buffers: [
@@ -121,10 +130,24 @@ export class Renderer {
       },
       fragment: {
         module: this.device.createShaderModule({
-          code: fragmentShader,
+          code: processShader(fragmentShader),
         }),
         entryPoint: "main",
-        targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }],
+        targets: [
+          {
+            format: navigator.gpu.getPreferredCanvasFormat(),
+            blend: {
+              color: {
+                srcFactor: "src-alpha",
+                dstFactor: "one-minus-src-alpha",
+              },
+              alpha: {
+                srcFactor: "one",
+                dstFactor: "one-minus-src-alpha",
+              },
+            },
+          },
+        ],
       },
       primitive: {
         topology: "point-list",
@@ -136,6 +159,12 @@ export class Renderer {
     const nodes = this.graph.get_nodes();
     console.log("Node buffer:", nodes);
     console.log("Node count:", nodes.length / 7);
+    nodes.forEach((_, i) => {
+      if (i % 7 === 3) {
+        // radius position in array
+        console.log(`Node ${Math.floor(i / 7)} radius:`, nodes[i]);
+      }
+    });
 
     console.log("First node data:", {
       id: nodes[0],
