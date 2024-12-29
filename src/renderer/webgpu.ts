@@ -100,8 +100,7 @@ export class Renderer {
     const vertexShader = processShader(vertexShaderSrc);
     const fragmentShader = processShader(fragmentShaderSrc);
 
-    const devicePixelRatio = 1;
-    getPixelRatio();
+    const devicePixelRatio = getPixelRatio();
 
     this.canvas.width = this.canvas.clientWidth * devicePixelRatio;
     this.canvas.height = this.canvas.clientHeight * devicePixelRatio;

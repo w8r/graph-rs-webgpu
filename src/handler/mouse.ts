@@ -2,11 +2,11 @@ import { Camera } from "../camera";
 import { EventEmitter } from "eventemitter3";
 
 export class Mouse extends EventEmitter<{ update: [] }> {
-  // Mouse state tracking
   private isDragging = false;
   private lastMouseX = 0;
   private lastMouseY = 0;
   private rect!: DOMRect;
+  private devicePixelRatio: number = window.devicePixelRatio || 1;
 
   constructor(private canvas: HTMLCanvasElement, private camera: Camera) {
     super();
@@ -15,29 +15,17 @@ export class Mouse extends EventEmitter<{ update: [] }> {
 
     this.updateCameraDimensions();
 
-    // Resize listener to update camera and rect
     window.addEventListener("resize", this.updateRect);
   }
 
   updateCameraDimensions() {
-    this.camera.width = this.canvas.width;
-    this.camera.height = this.canvas.height;
-  }
-
-  get x() {
-    return this.lastMouseX;
-  }
-
-  get y() {
-    return this.lastMouseY;
+    this.camera.width = this.canvas.width / this.devicePixelRatio;
+    this.camera.height = this.canvas.height / this.devicePixelRatio;
   }
 
   private updateRect = () => {
     this.rect = this.canvas.getBoundingClientRect();
-
-    // Update camera dimensions
-    this.camera.width = this.canvas.width;
-    this.camera.height = this.canvas.height;
+    this.updateCameraDimensions();
   };
 
   private setupEventHandlers() {
@@ -54,19 +42,19 @@ export class Mouse extends EventEmitter<{ update: [] }> {
     this.lastMouseY = y;
   }
 
+  private getCanvasPosition(event: MouseEvent | WheelEvent) {
+    const rect = this.rect;
+    return {
+      x: (event.clientX - rect.left) * this.devicePixelRatio,
+      y: (event.clientY - rect.top) * this.devicePixelRatio,
+    };
+  }
+
   private onMouseDown = (event: MouseEvent) => {
     this.isDragging = true;
     this.setXY(event);
     this.canvas.style.cursor = "grabbing";
   };
-
-  private getCanvasPosition(event: MouseEvent) {
-    const rect = this.rect;
-    return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    };
-  }
 
   private onMouseMove = (event: MouseEvent) => {
     if (!this.isDragging) {
@@ -79,13 +67,9 @@ export class Mouse extends EventEmitter<{ update: [] }> {
     const dx = x - this.lastMouseX;
     const dy = y - this.lastMouseY;
 
-    // Use camera's move method to update position
     this.camera.move(dx, -dy);
 
-    // Set new last mouse position
     this.setXY(event);
-
-    // Emit update event
     this.emit("update");
   };
 
@@ -99,33 +83,19 @@ export class Mouse extends EventEmitter<{ update: [] }> {
 
     const { x, y } = this.getCanvasPosition(event);
 
-    // Use a more consistent zoom factor
     const zoomFactor = event.deltaY > 0 ? 0.99 : 1.01;
 
-    // Zoom around the specific point
     this.camera.zoomAroundPoint(zoomFactor, x, y);
-
-    // Log debug information
-    console.log("Wheel Zoom:", {
-      zoomFactor,
-      screenX: x,
-      screenY: y,
-      cameraPosition: this.camera.position,
-      cameraZoom: this.camera.zoom,
-    });
 
     this.emit("update");
   };
 
   destroy() {
-    const canvas = this.canvas;
-    canvas.removeEventListener("mousedown", this.onMouseDown);
-    canvas.removeEventListener("mousemove", this.onMouseMove);
-    canvas.removeEventListener("mouseup", this.onMouseUp);
-    canvas.removeEventListener("mouseleave", this.onMouseUp);
-    canvas.removeEventListener("wheel", this.onWheel);
-
-    // Remove resize listener
+    this.canvas.removeEventListener("mousedown", this.onMouseDown);
+    this.canvas.removeEventListener("mousemove", this.onMouseMove);
+    this.canvas.removeEventListener("mouseup", this.onMouseUp);
+    this.canvas.removeEventListener("mouseleave", this.onMouseUp);
+    this.canvas.removeEventListener("wheel", this.onWheel);
     window.removeEventListener("resize", this.updateRect);
   }
 }

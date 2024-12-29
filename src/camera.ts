@@ -1,5 +1,7 @@
+import { Point } from "./types";
+
 export class Camera {
-  position: { x: number; y: number } = { x: 0, y: 0 };
+  position: Point = { x: 0, y: 0 };
   zoom: number = 1;
   width: number = 0;
   height: number = 0;
@@ -7,49 +9,40 @@ export class Camera {
   minZoom: number = 0.1;
 
   zoomAroundPoint(zoomFactor: number, screenX: number, screenY: number) {
-    // Get the world point before zooming
     const worldPointBefore = this.screenToWorld(screenX, screenY);
 
-    // Apply zoom
-    this.zoom *= zoomFactor;
+    this.zoom = Math.min(
+      this.maxZoom,
+      Math.max(this.minZoom, this.zoom * zoomFactor)
+    );
 
-    // Get the world point after zooming
     const worldPointAfter = this.screenToWorld(screenX, screenY);
 
-    // Adjust camera position to keep the point fixed
     this.position.x += worldPointBefore.x - worldPointAfter.x;
     this.position.y += worldPointBefore.y - worldPointAfter.y;
   }
 
   move(dx: number, dy: number) {
-    // Adjust movement based on current zoom
     this.position.x -= dx / this.zoom;
     this.position.y -= dy / this.zoom;
   }
 
+  worldToScreen(worldX: number, worldY: number): Point {
+    return {
+      x: (worldX - this.position.x) * this.zoom + this.width / 2,
+      y: this.height / 2 - (worldY - this.position.y) * this.zoom,
+    };
+  }
+
+  screenToWorld(screenX: number, screenY: number): Point {
+    return {
+      x: (screenX - this.width / 2) / this.zoom + this.position.x,
+      y: -(screenY - this.height / 2) / this.zoom + this.position.y,
+    };
+  }
+
   getScale() {
-    return this.maxZoom / this.zoom;
-  }
-
-  worldToScreen(worldX: number, worldY: number): { x: number; y: number } {
-    // Apply current zoom and camera position
-    const screenX = (worldX - this.position.x) * this.zoom + this.width / 2;
-    const screenY = this.height / 2 - (worldY - this.position.y) * this.zoom;
-
-    return { x: screenX, y: screenY };
-  }
-
-  // Conversion from screen space to world space
-  screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
-    // Adjust coordinates to be centered
-    const centerX = screenX - this.width / 2;
-    const centerY = screenY - this.height / 2;
-
-    // Apply current zoom and camera position
-    const worldX = centerX / this.zoom + this.position.x;
-    const worldY = -centerY / this.zoom + this.position.y;
-
-    return { x: worldX, y: worldY };
+    return (this.zoom * Math.min(this.width, this.height)) / 2;
   }
 
   getViewProjMatrix(aspect: number): Float32Array {

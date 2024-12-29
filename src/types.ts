@@ -26,3 +26,5 @@ export interface GraphData {
   nodes: Node[];
   edges: Edge[];
 }
+
+export type Point = { x: number; y: number };
