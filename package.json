@@ -8,6 +8,7 @@
     "build": "rsw build && npm run fe:build",
     "fe:build": "tsc && vite build",
     "test": "vitest run",
+    "predeploy": "npm run build && mkdir -p dist/test/fixtures && cp -R test/fixtures dist/test/",
     "deploy": "gh-pages -d dist --nojekyll"
   },
   "devDependencies": {

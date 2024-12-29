@@ -1,9 +1,11 @@
 use wasm_bindgen::prelude::*;
+use std::collections::BTreeMap;
 
 #[wasm_bindgen]
 pub struct Graph {
     nodes: Vec<Node>,
     edges: Vec<Edge>,
+    nodes_lookup: BTreeMap<u32, usize>,
 }
 
 #[derive(Clone)]
@@ -26,6 +28,7 @@ struct Edge {
 
 #[wasm_bindgen]
 impl Graph {
+
     #[wasm_bindgen(constructor)]
     pub fn new(buffer: &[f32]) -> Graph {
         let node_count = buffer[0] as usize;
@@ -36,17 +39,24 @@ impl Graph {
 
         let mut offset = 2;
 
+        let mut nodes_lookup: BTreeMap<u32, usize>  = BTreeMap::new();
+
         // Parse nodes
         for _ in 0..node_count {
+            let id = buffer[offset] as u32;
             nodes.push(Node {
-                id: buffer[offset] as u32,
+                id: id,
                 x: buffer[offset + 1],
                 y: buffer[offset + 2],
                 r: buffer[offset + 3],
                 color: [buffer[offset + 4], buffer[offset + 5], buffer[offset + 6]],
             });
+            nodes_lookup.insert(id, nodes.len() - 1);
             offset += 7;
         }
+
+        // lookup table to find node index by node id. Node id can by a random integer between 0 and 2^32
+
 
         // Parse edges
         for _ in 0..edge_count {
@@ -60,12 +70,13 @@ impl Graph {
             offset += 7;
         }
 
-        Graph { nodes, edges }
+        Graph { nodes, edges, nodes_lookup }
     }
 
     pub fn set_graph(&mut self, data: &[f32]) {
         self.nodes.clear();
         self.edges.clear();
+        self.nodes_lookup.clear();
 
         // First two numbers are counts
         if data.len() < 2 {
@@ -79,13 +90,15 @@ impl Graph {
         // Process nodes
         for _ in 0..node_count {
             if offset + 7 <= data.len() {
+                let id = data[offset] as u32;
                 self.nodes.push(Node {
-                    id: data[offset] as u32,
+                    id: id,
                     x: data[offset + 1],
                     y: data[offset + 2],
                     r: data[offset + 3],
                     color: [data[offset + 4], data[offset + 5], data[offset + 6]]
                 });
+                self.nodes_lookup.insert(id, self.nodes.len() - 1);
                 offset += 7;
             }
         }
@@ -116,6 +129,7 @@ impl Graph {
             r,
             color: [color[0], color[1], color[2]],
         });
+        self.nodes_lookup.insert(id, self.nodes.len() - 1);
         true
     }
 
@@ -134,7 +148,13 @@ impl Graph {
     }
 
     pub fn update_node(&mut self, id: u32, x: f32, y: f32, r: f32, color: &[f32]) -> bool {
-        if let Some(node) = self.nodes.iter_mut().find(|n| n.id == id) {
+        let index = self.nodes_lookup.get(&id);
+        if index.is_none() {
+            return false;
+        }
+        let index = *index.unwrap();
+        let node = self.nodes.get_mut(index).unwrap();
+        if node.id == id {
             node.x = x;
             node.y = y;
             node.r = r;
@@ -159,6 +179,7 @@ impl Graph {
         let initial_len = self.nodes.len();
         self.nodes.retain(|n| n.id != id);
         self.edges.retain(|e| e.source != id && e.target != id);
+        self.nodes_lookup.remove(&id);
         initial_len != self.nodes.len()
     }
 
@@ -226,22 +247,24 @@ impl Graph {
 
         // Add edges (type = 1)
         for edge in &self.edges {
-            if let (Some(source), Some(target)) = (
-                self.nodes.iter().find(|n| n.id == edge.source),
-                self.nodes.iter().find(|n| n.id == edge.target)
-            ) {
-                buffer.extend_from_slice(&[
-                    1.0,            // type (edge)
-                    source.x,       // source x
-                    source.y,       // source y
-                    target.x,       // target x
-                    target.y,       // target y
-                    edge.width,
-                    edge.color[0],
-                    edge.color[1],
-                    edge.color[2]
-                ]);
-            }
+            let source_index = self.nodes_lookup.get(&edge.source);
+            let target_index = self.nodes_lookup.get(&edge.target);
+
+            let source = self.nodes.get(*source_index.unwrap()).unwrap();
+            let target = self.nodes.get(*target_index.unwrap()).unwrap();
+
+
+            buffer.extend_from_slice(&[
+                1.0,            // type (edge)
+                source.x,       // source x
+                source.y,       // source y
+                target.x,       // target x
+                target.y,       // target y
+                edge.width,
+                edge.color[0],
+                edge.color[1],
+                edge.color[2]
+            ]);
         }
 
         unsafe { js_sys::Float32Array::view(&buffer) }
