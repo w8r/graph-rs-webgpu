@@ -93,11 +93,6 @@ export class Renderer {
       ],
     });
 
-    // Create pipeline layout
-    const pipelineLayout = this.device.createPipelineLayout({
-      bindGroupLayouts: [bindGroupLayout],
-    });
-
     // Create bind group
     this.bindGroup = this.device.createBindGroup({
       layout: bindGroupLayout,
@@ -107,6 +102,11 @@ export class Renderer {
           resource: { buffer: this.viewProjBuffer },
         },
       ],
+    });
+
+    // Create pipeline layout
+    const pipelineLayout = this.device.createPipelineLayout({
+      bindGroupLayouts: [bindGroupLayout],
     });
 
     this.pipeline = this.device.createRenderPipeline({
@@ -163,7 +163,7 @@ export class Renderer {
         ],
       },
       primitive: {
-        topology: "point-list",
+        topology: "triangle-list",
         //stripIndexFormat: undefined,
       },
     });
@@ -171,41 +171,15 @@ export class Renderer {
 
   draw() {
     const nodes = this.graph.get_nodes();
-    console.log("Node buffer:", nodes);
-    console.log("Node count:", nodes.length / 7);
-    nodes.forEach((_, i) => {
-      if (i % 7 === 3) {
-        // radius position in array
-        console.log(`Node ${Math.floor(i / 7)} radius:`, nodes[i]);
-      }
-    });
-
-    console.log("First node data:", {
-      id: nodes[0],
-      x: nodes[1],
-      y: nodes[2],
-      radius: nodes[3],
-      r: nodes[4],
-      g: nodes[5],
-      b: nodes[6],
-    });
+    const nodeCount = this.graph.node_count();
 
     this.vertexBuffer = this.device.createBuffer({
       size: nodes.byteLength,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
       mappedAtCreation: true,
     });
-
     new Float32Array(this.vertexBuffer.getMappedRange()).set(nodes);
     this.vertexBuffer.unmap();
-
-    // this.vertexBuffer = this.device.createBuffer({
-    //   size: vertexData.byteLength,
-    //   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    //   mappedAtCreation: true,
-    // });
-    // new Float32Array(this.vertexBuffer.getMappedRange()).set(vertexData);
-    // this.vertexBuffer.unmap();
 
     const commandEncoder = this.device.createCommandEncoder();
     const renderPass = commandEncoder.beginRenderPass({
@@ -222,13 +196,67 @@ export class Renderer {
     renderPass.setPipeline(this.pipeline);
     renderPass.setBindGroup(0, this.bindGroup);
     renderPass.setVertexBuffer(0, this.vertexBuffer);
-    renderPass.setVertexBuffer(1, this.quadBuffer); // quad vertices
-
-    const nodeCount = this.graph.node_count();
-
-    renderPass.draw(nodeCount);
+    renderPass.setVertexBuffer(1, this.quadBuffer);
+    renderPass.draw(6, nodeCount);
     renderPass.end();
 
     this.device.queue.submit([commandEncoder.finish()]);
+    // const nodes = this.graph.get_nodes();
+    // console.log("Node buffer:", nodes);
+    // console.log("Node count:", nodes.length / 7);
+    // nodes.forEach((_, i) => {
+    //   if (i % 7 === 3) {
+    //     // radius position in array
+    //     console.log(`Node ${Math.floor(i / 7)} radius:`, nodes[i]);
+    //   }
+    // });
+
+    // console.log("Node data", nodes);
+
+    // const quadData = new Float32Array(this.quadBuffer.getMappedRange());
+
+    // console.log("Quad data:", quadData);
+
+    // this.vertexBuffer = this.device.createBuffer({
+    //   size: nodes.byteLength,
+    //   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    //   mappedAtCreation: true,
+    // });
+
+    // new Float32Array(this.vertexBuffer.getMappedRange()).set(nodes);
+    // this.vertexBuffer.unmap();
+
+    // // this.vertexBuffer = this.device.createBuffer({
+    // //   size: vertexData.byteLength,
+    // //   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    // //   mappedAtCreation: true,
+    // // });
+    // // new Float32Array(this.vertexBuffer.getMappedRange()).set(vertexData);
+    // // this.vertexBuffer.unmap();
+
+    // const commandEncoder = this.device.createCommandEncoder();
+    // const renderPass = commandEncoder.beginRenderPass({
+    //   colorAttachments: [
+    //     {
+    //       view: this.context.getCurrentTexture().createView(),
+    //       clearValue: { r: 0, g: 0, b: 0, a: 1 },
+    //       loadOp: "clear",
+    //       storeOp: "store",
+    //     },
+    //   ],
+    // });
+
+    // renderPass.setPipeline(this.pipeline);
+    // renderPass.setBindGroup(0, this.bindGroup);
+    // renderPass.setVertexBuffer(0, this.vertexBuffer);
+    // renderPass.setVertexBuffer(1, this.quadBuffer); // quad vertices
+
+    // const nodeCount = this.graph.node_count();
+
+    // console.log("Node count:", nodeCount);
+    // renderPass.draw(nodeCount);
+    // renderPass.end();
+
+    // this.device.queue.submit([commandEncoder.finish()]);
   }
 }

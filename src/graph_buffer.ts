@@ -21,16 +21,17 @@ export class GraphBuffer {
 
     // Convert nodes
     data.nodes.forEach((node) => {
-      const color = this.hexToRgb(node.attributes.color);
+      const color = parseHexColor(node.attributes.color)!;
+      console.log(color);
       buffer.set(
         [
           node.id,
           node.attributes.x,
           node.attributes.y,
           node.attributes.r,
-          color.r / 255,
-          color.g / 255,
-          color.b / 255,
+          color.r,
+          color.g,
+          color.b,
         ],
         offset
       );
@@ -39,16 +40,16 @@ export class GraphBuffer {
 
     // Convert edges
     data.edges.forEach((edge) => {
-      const color = this.hexToRgb(edge.attributes.color);
+      const color = parseHexColor(edge.attributes.color)!;
       buffer.set(
         [
           edge.id,
           edge.source,
           edge.target,
           edge.attributes.width,
-          color.r / 255,
-          color.g / 255,
-          color.b / 255,
+          color.r,
+          color.g,
+          color.b,
         ],
         offset
       );
@@ -57,15 +58,38 @@ export class GraphBuffer {
 
     return buffer;
   }
+}
 
-  private static hexToRgb(hex: string): { r: number; g: number; b: number } {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-      ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16),
-        }
-      : { r: 0, g: 0, b: 0 };
+function parseHexColor(
+  hex: string
+): { r: number; g: number; b: number } | null {
+  if (!hex || (hex.length !== 4 && hex.length !== 7) || hex[0] !== "#") {
+    return null; // Invalid format
+  }
+
+  let r: string, g: string, b: string;
+
+  if (hex.length === 4) {
+    // #rgb format
+    r = hex[1] + hex[1];
+    g = hex[2] + hex[2];
+    b = hex[3] + hex[3];
+  } else {
+    // #rrggbb format
+    r = hex.substring(1, 3);
+    g = hex.substring(3, 5);
+    b = hex.substring(5, 7);
+  }
+
+  try {
+    const red = parseInt(r, 16) / 255;
+    const green = parseInt(g, 16) / 255;
+    const blue = parseInt(b, 16) / 255;
+
+    if (isNaN(red) || isNaN(green) || isNaN(blue)) return null;
+
+    return { r: red, g: green, b: blue };
+  } catch (error) {
+    return null; // Parsing error
   }
 }

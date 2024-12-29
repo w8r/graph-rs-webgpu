@@ -22,7 +22,7 @@ const graph = new Graph(buffer);
 // console.log(graph.node_count(), graph.edge_count());
 
 // graph.remove_node(6);
-console.log(graph.node_count(), graph.edge_count());
+console.log(graph.node_count(), graph.edge_count(), graph.get_nodes());
 
 const canvas = document.querySelector("canvas")!;
 const renderer = new Renderer(canvas, graph);
