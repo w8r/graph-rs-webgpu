@@ -61,24 +61,13 @@ export class Renderer {
     });
   }
 
-  private createViewProjBuffer() {
-    const max = 50;
-    const aspect = window.innerWidth / window.innerHeight;
-    // Create view projection matrix that maps [-100,100] to [-1,1]
-    // prettier-ignore
-    const viewProjMatrix = new Float32Array([
-      1 / (max * aspect), 0, 0, 0, // scale x,
-      0, 1 / max, 0, 0, // scale y
-      0, 0, 1, 0, // skew unused for 2D
-      0, 0, 0, 1, // no translation yet
-    ]);
-
+  private createViewProjBuffer(view: Float32Array) {
     this.viewProjBuffer = this.device.createBuffer({
-      size: viewProjMatrix.byteLength,
+      size: view.byteLength,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       mappedAtCreation: true,
     });
-    new Float32Array(this.viewProjBuffer.getMappedRange()).set(viewProjMatrix);
+    new Float32Array(this.viewProjBuffer.getMappedRange()).set(view);
     this.viewProjBuffer.unmap();
   }
 
@@ -103,7 +92,7 @@ export class Renderer {
     this.quadBuffer.unmap();
   }
 
-  async init() {
+  async init(view: Float32Array) {
     const adapter = await navigator.gpu.requestAdapter();
     this.device = await adapter!.requestDevice();
     this.context = this.canvas.getContext("webgpu")!;
@@ -111,20 +100,11 @@ export class Renderer {
     const vertexShader = processShader(vertexShaderSrc);
     const fragmentShader = processShader(fragmentShaderSrc);
 
-    const devicePixelRatio = getPixelRatio();
-
-    // this.canvas.width = window.innerWidth - 20;
-    // this.canvas.height = window.innerHeight - 20;
+    const devicePixelRatio = 1;
+    getPixelRatio();
 
     this.canvas.width = this.canvas.clientWidth * devicePixelRatio;
     this.canvas.height = this.canvas.clientHeight * devicePixelRatio;
-
-    console.log(
-      this.canvas.clientWidth,
-      this.canvas.clientHeight,
-      this.canvas.width,
-      this.canvas.height
-    );
 
     this.context.configure({
       device: this.device,
@@ -134,7 +114,7 @@ export class Renderer {
 
     this.createQuadBuffer();
     this.createLineBuffer();
-    this.createViewProjBuffer();
+    this.createViewProjBuffer(view);
     this.createDepthTexture();
 
     // Create bind group layout
@@ -375,5 +355,9 @@ export class Renderer {
 
     renderPass.end();
     this.device.queue.submit([commandEncoder.finish()]);
+  }
+
+  public updateViewProj(matrix: Float32Array) {
+    this.device.queue.writeBuffer(this.viewProjBuffer, 0, matrix);
   }
 }
