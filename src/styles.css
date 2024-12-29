@@ -6,6 +6,6 @@ html {
 }
 
 #canvas {
-  width: 100vw - 20px;
-  height: 100vh - 20px;
+  width: 100vw;
+  height: 100vh;
 }

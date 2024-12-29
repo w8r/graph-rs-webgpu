@@ -17,8 +17,6 @@ const getPixelRatio = () =>
 export class Renderer {
   private device!: GPUDevice;
   private context!: GPUCanvasContext;
-  private pipeline!: GPURenderPipeline;
-  private vertexBuffer!: GPUBuffer;
   private viewProjBuffer!: GPUBuffer;
   private bindGroup!: GPUBindGroup;
   private quadBuffer!: GPUBuffer;
@@ -112,11 +110,19 @@ export class Renderer {
     const fragmentShader = processShader(fragmentShaderSrc);
 
     const devicePixelRatio = getPixelRatio();
+
+    // this.canvas.width = window.innerWidth - 20;
+    // this.canvas.height = window.innerHeight - 20;
+
     this.canvas.width = this.canvas.clientWidth * devicePixelRatio;
     this.canvas.height = this.canvas.clientHeight * devicePixelRatio;
 
-    this.canvas.width = window.innerWidth - 20;
-    this.canvas.height = window.innerHeight - 20;
+    console.log(
+      this.canvas.clientWidth,
+      this.canvas.clientHeight,
+      this.canvas.width,
+      this.canvas.height
+    );
 
     this.context.configure({
       device: this.device,

@@ -47,15 +47,24 @@ fn vs_node(
 // Edge vertex shader
 @vertex
 fn vs_edge(
-  @location(0) element_type: f32,
-  @location(1) position: vec2<f32>,
-  @location(2) width: f32,
-  @location(3) color: vec3<f32>,
+   @location(0) type_id: f32,
+   @location(1) sourceXY: vec2<f32>,
+   @location(2) targetXY: vec2<f32>,
+   @location(3) width: f32,
+   @location(4) color: vec3<f32>,
+   @location(5) position: vec2<f32>, // from line buffer (0,0 or 1,0)
 ) -> VertexOutput {
-  var output: VertexOutput;
-  output.position = uniforms.viewProj * vec4<f32>(position, 0.5, 1.0);
-  output.color = color;
-  output.uv = vec2<f32>(0.0);
-  output.radius = width;
-  return output;
+   var output: VertexOutput;
+
+   // Calculate edge direction and length
+   let edge_vector = targetXY - sourceXY;
+
+   // Transform line segment vertex
+   let pos = sourceXY + edge_vector * position.x;
+
+   // Place edges behind nodes (z=0.5)
+   output.position = uniforms.viewProj * vec4<f32>(pos, 0.5, 1.0);
+   output.color = color;
+
+   return output;
 }

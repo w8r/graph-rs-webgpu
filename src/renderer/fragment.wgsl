@@ -21,12 +21,12 @@ fn main(in: VertexOutput) -> @location(0) vec4<f32> {
 fn fs_node(in: VertexOutput) -> @location(0) vec4<f32> {
     let uv = in.uv * 2.0 - 1.0;
     let dist = length(uv);
-    let edgeWidth = 0.5 / in.radius;
+    let edgeWidth = 0.05 / in.radius;
     let alpha = 1.0 - smoothstep(1.0 - edgeWidth, 1.0, dist);
     return vec4<f32>(in.color, alpha);
 }
 
 @fragment
 fn fs_edge(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(in.color, 1.0);
+   return vec4<f32>(in.color, 1.0);
 }
