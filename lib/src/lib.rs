@@ -165,4 +165,65 @@ impl Graph {
     pub fn edge_count(&self) -> usize {
       self.edges.len()
     }
+
+    pub fn get_buffer(&self) -> js_sys::Float32Array {
+        let mut buffer = Vec::with_capacity((self.nodes.len() + self.edges.len()) * 7);
+
+        // Add nodes (type = 0)
+        for node in &self.nodes {
+            buffer.extend_from_slice(&[
+                0.0,    // type identifier for node
+                node.x,
+                node.y,
+                node.r,
+                node.color[0],
+                node.color[1],
+                node.color[2]
+            ]);
+        }
+
+        // Add edges (type = 1)
+        for edge in &self.edges {
+            if let (Some(source), Some(target)) = (
+                self.nodes.iter().find(|n| n.id == edge.source),
+                self.nodes.iter().find(|n| n.id == edge.target)
+            ) {
+                buffer.extend_from_slice(&[
+                    1.0,            // type (edge)
+                    source.x,       // source x
+                    source.y,       // source y
+                    target.x,       // target x
+                    target.y,       // target y
+                    edge.width,
+                    edge.color[0],
+                    edge.color[1],
+                    edge.color[2]
+                ]);
+            }
+        }
+
+        unsafe { js_sys::Float32Array::view(&buffer) }
+    }
+
+    // We'll still need these for counting draw calls
+    pub fn get_total_elements(&self) -> usize {
+        self.nodes.len() + self.edges.len()
+    }
+
+    pub fn get_buffer_info(&self) -> js_sys::Array {
+        let nodes_offset = 0;
+        let nodes_size = self.nodes.len() * 7;
+        let edges_offset = nodes_size;
+
+        let result = js_sys::Array::new();
+        result.push(&JsValue::from(nodes_offset));
+        result.push(&JsValue::from(edges_offset));
+        result.push(&JsValue::from(self.edges.len()));
+
+        result
+    }
+
+    pub fn get_edges_offset(&self) -> usize {
+        self.nodes.len() * 7  // each node has 7 floats
+    }
 }

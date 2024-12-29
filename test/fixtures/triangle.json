@@ -4,7 +4,7 @@
       "id": 0,
       "attributes": { "x": -15, "y": -15, "r": 12, "color": "#50e" }
     },
-    { "id": 1, "attributes": { "x": 15, "y": -15, "r": 2.5, "color": "#f3a" } },
+    { "id": 1, "attributes": { "x": 15, "y": -15, "r": 1.5, "color": "#f3a" } },
     { "id": 2, "attributes": { "x": 0, "y": 15, "r": 5, "color": "#5ed" } }
   ],
   "edges": [

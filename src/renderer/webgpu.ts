@@ -1,14 +1,12 @@
 import { Graph } from "../../lib/pkg";
-import vertexShader from "./vertex.wgsl?raw";
-import fragmentShader from "./fragment.wgsl?raw";
-import typesWgsl from "./types.wgsl?raw";
-
-console.log({ vertexShader });
+import vertexShaderSrc from "./vertex.wgsl?raw";
+import fragmentShaderSrc from "./fragment.wgsl?raw";
+import typesWgslSrc from "./types.wgsl?raw";
 
 // Replace #include directives
 const processShader = (source: string) => {
   return source.replace(/#include "([^"]+)"/g, (_, path) => {
-    if (path === "types.wgsl") return typesWgsl;
+    if (path === "types.wgsl") return typesWgslSrc;
     throw new Error(`Unknown include: ${path}`);
   });
 };
@@ -24,13 +22,94 @@ export class Renderer {
   private viewProjBuffer!: GPUBuffer;
   private bindGroup!: GPUBindGroup;
   private quadBuffer!: GPUBuffer;
+  private lineBuffer!: GPUBuffer;
+  private depthTexture!: GPUTexture;
+
+  private combinedBuffer!: GPUBuffer;
+  private combinedBufferSize!: number;
+
+  private nodePipeline!: GPURenderPipeline;
+  private edgePipeline!: GPURenderPipeline;
 
   constructor(private canvas: HTMLCanvasElement, private graph: Graph) {}
+
+  private createLineBuffer() {
+    const lineVertices = new Float32Array([
+      0,
+      0, // start point
+      1,
+      0, // end point
+    ]);
+
+    this.lineBuffer = this.device.createBuffer({
+      size: lineVertices.byteLength,
+      usage: GPUBufferUsage.VERTEX,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.lineBuffer.getMappedRange()).set(lineVertices);
+    this.lineBuffer.unmap();
+  }
+
+  private createDepthTexture() {
+    this.depthTexture = this.device.createTexture({
+      size: {
+        width: this.canvas.width,
+        height: this.canvas.height,
+      },
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+  }
+
+  private createViewProjBuffer() {
+    const max = 50;
+    const aspect = window.innerWidth / window.innerHeight;
+    // Create view projection matrix that maps [-100,100] to [-1,1]
+    // prettier-ignore
+    const viewProjMatrix = new Float32Array([
+      1 / (max * aspect), 0, 0, 0, // scale x,
+      0, 1 / max, 0, 0, // scale y
+      0, 0, 1, 0, // skew unused for 2D
+      0, 0, 0, 1, // no translation yet
+    ]);
+
+    this.viewProjBuffer = this.device.createBuffer({
+      size: viewProjMatrix.byteLength,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.viewProjBuffer.getMappedRange()).set(viewProjMatrix);
+    this.viewProjBuffer.unmap();
+  }
+
+  private createQuadBuffer() {
+    // Create static quad vertex buffer
+    // prettier-ignore
+    const quadVertices = new Float32Array([
+      -1, -1, 0, 0,  // first triangle: corner at (-1,-1) with UV (0,0)
+      1, -1, 1, 0,  // corner at (1,-1) with UV (1,0)
+      1, 1, 1, 1,  // corner at (1,1) with UV (1,1)
+      -1, -1, 0, 0,  // second triangle: repeats first corner
+      1, 1, 1, 1,  // repeats third corner
+      -1, 1, 0, 1   // corner at (-1,1) with UV (0,1)
+    ]);
+
+    this.quadBuffer = this.device.createBuffer({
+      size: quadVertices.byteLength,
+      usage: GPUBufferUsage.VERTEX,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.quadBuffer.getMappedRange()).set(quadVertices);
+    this.quadBuffer.unmap();
+  }
 
   async init() {
     const adapter = await navigator.gpu.requestAdapter();
     this.device = await adapter!.requestDevice();
     this.context = this.canvas.getContext("webgpu")!;
+
+    const vertexShader = processShader(vertexShaderSrc);
+    const fragmentShader = processShader(fragmentShaderSrc);
 
     const devicePixelRatio = getPixelRatio();
     this.canvas.width = this.canvas.clientWidth * devicePixelRatio;
@@ -45,42 +124,10 @@ export class Renderer {
       alphaMode: "premultiplied",
     });
 
-    // Create static quad vertex buffer
-    // prettier-ignore
-    const quadVertices = new Float32Array([
-      -1, -1,  0, 0,  // first triangle: corner at (-1,-1) with UV (0,0)
-      1, -1,  1, 0,  // corner at (1,-1) with UV (1,0)
-      1,  1,  1, 1,  // corner at (1,1) with UV (1,1)
-     -1, -1,  0, 0,  // second triangle: repeats first corner
-      1,  1,  1, 1,  // repeats third corner
-     -1,  1,  0, 1   // corner at (-1,1) with UV (0,1)
-    ]);
-
-    this.quadBuffer = this.device.createBuffer({
-      size: quadVertices.byteLength,
-      usage: GPUBufferUsage.VERTEX,
-      mappedAtCreation: true,
-    });
-    new Float32Array(this.quadBuffer.getMappedRange()).set(quadVertices);
-    this.quadBuffer.unmap();
-
-    const max = 50;
-    // Create view projection matrix that maps [-100,100] to [-1,1]
-    // prettier-ignore
-    const viewProjMatrix = new Float32Array([
-      1 / max,       0, 0, 0, // scale x,
-      0,       1 / max, 0, 0, // scale y
-      0,             0, 1, 0, // skew unused for 2D
-      0,             0, 0, 1, // no translation yet
-    ]);
-
-    this.viewProjBuffer = this.device.createBuffer({
-      size: viewProjMatrix.byteLength,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      mappedAtCreation: true,
-    });
-    new Float32Array(this.viewProjBuffer.getMappedRange()).set(viewProjMatrix);
-    this.viewProjBuffer.unmap();
+    this.createQuadBuffer();
+    this.createLineBuffer();
+    this.createViewProjBuffer();
+    this.createDepthTexture();
 
     // Create bind group layout
     const bindGroupLayout = this.device.createBindGroupLayout({
@@ -109,27 +156,60 @@ export class Renderer {
       bindGroupLayouts: [bindGroupLayout],
     });
 
-    this.pipeline = this.device.createRenderPipeline({
+    const vertexShaderModule = this.device.createShaderModule({
+      code: vertexShader,
+    });
+    const fragmentShaderModule = this.device.createShaderModule({
+      code: fragmentShader,
+    });
+
+    this.createNodePipeline(
+      vertexShaderModule,
+      fragmentShaderModule,
+      pipelineLayout
+    );
+
+    this.createEdgePipeline(
+      vertexShaderModule,
+      fragmentShaderModule,
+      pipelineLayout
+    );
+
+    const initialBuffer = this.graph.get_buffer();
+    this.combinedBufferSize = initialBuffer.byteLength;
+    this.combinedBuffer = this.device.createBuffer({
+      size: this.combinedBufferSize,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+
+    // Initial upload
+    this.device.queue.writeBuffer(this.combinedBuffer, 0, initialBuffer);
+  }
+
+  private createNodePipeline(
+    vertexShaderModule: GPUShaderModule,
+    fragmentShaderModule: GPUShaderModule,
+    pipelineLayout: GPUPipelineLayout
+  ) {
+    this.nodePipeline = this.device.createRenderPipeline({
       layout: pipelineLayout,
       vertex: {
-        module: this.device.createShaderModule({
-          code: processShader(vertexShader),
-        }),
-        entryPoint: "main",
+        module: vertexShaderModule,
+        entryPoint: "vs_node",
         buffers: [
           {
-            // Node data from Rust (instanced)
+            // Node data from combined buffer (instanced)
             arrayStride: 28, // 7 floats * 4 bytes
             stepMode: "instance",
             attributes: [
-              { shaderLocation: 0, offset: 0, format: "float32" }, // id
+              { shaderLocation: 0, offset: 0, format: "float32" }, // type
               { shaderLocation: 1, offset: 4, format: "float32x2" }, // position
               { shaderLocation: 2, offset: 12, format: "float32" }, // radius
               { shaderLocation: 3, offset: 16, format: "float32x3" }, // color
             ],
           },
           {
-            // Quad vertices (per vertex)
+            // Quad vertices (same as before)
             arrayStride: 16, // 4 floats * 4 bytes
             stepMode: "vertex",
             attributes: [
@@ -140,10 +220,66 @@ export class Renderer {
         ],
       },
       fragment: {
-        module: this.device.createShaderModule({
-          code: processShader(fragmentShader),
-        }),
-        entryPoint: "main",
+        module: fragmentShaderModule,
+        entryPoint: "fs_node",
+        targets: [
+          {
+            format: navigator.gpu.getPreferredCanvasFormat(),
+            blend: {
+              color: {
+                srcFactor: "src-alpha",
+                dstFactor: "one-minus-src-alpha",
+              },
+              alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+            },
+          },
+        ],
+      },
+      primitive: { topology: "triangle-list" },
+      depthStencil: {
+        format: "depth24plus",
+        depthWriteEnabled: true,
+        depthCompare: "less",
+      },
+    });
+  }
+
+  private createEdgePipeline(
+    vertexShaderModule: GPUShaderModule,
+    fragmentShaderModule: GPUShaderModule,
+    pipelineLayout: GPUPipelineLayout
+  ) {
+    this.edgePipeline = this.device.createRenderPipeline({
+      layout: pipelineLayout,
+      vertex: {
+        module: vertexShaderModule,
+        entryPoint: "vs_edge",
+        buffers: [
+          {
+            // Edge instance data
+            arrayStride: 36,
+            stepMode: "instance",
+            attributes: [
+              { shaderLocation: 0, offset: 0, format: "float32" }, // type
+              { shaderLocation: 1, offset: 4, format: "float32x2" }, // source pos
+              { shaderLocation: 2, offset: 12, format: "float32x2" }, // target pos
+              { shaderLocation: 3, offset: 20, format: "float32" }, // width
+              { shaderLocation: 4, offset: 24, format: "float32x3" }, // color
+            ],
+          },
+          {
+            // Line vertex data
+            arrayStride: 8,
+            stepMode: "vertex",
+            attributes: [
+              { shaderLocation: 5, offset: 0, format: "float32x2" }, // position
+            ],
+          },
+        ],
+      },
+      fragment: {
+        module: fragmentShaderModule,
+        entryPoint: "fs_edge",
         targets: [
           {
             format: navigator.gpu.getPreferredCanvasFormat(),
@@ -162,24 +298,37 @@ export class Renderer {
           },
         ],
       },
-      primitive: {
-        topology: "triangle-list",
-        //stripIndexFormat: undefined,
+      primitive: { topology: "line-list" },
+      depthStencil: {
+        format: "depth24plus",
+        depthWriteEnabled: true,
+        depthCompare: "less",
       },
     });
   }
 
-  draw() {
-    const nodes = this.graph.get_nodes();
-    const nodeCount = this.graph.node_count();
+  updateGraphData() {
+    const newData = this.graph.get_buffer();
 
-    this.vertexBuffer = this.device.createBuffer({
-      size: nodes.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-      mappedAtCreation: true,
-    });
-    new Float32Array(this.vertexBuffer.getMappedRange()).set(nodes);
-    this.vertexBuffer.unmap();
+    // If data size changed, recreate buffer
+    if (newData.byteLength > this.combinedBufferSize) {
+      this.combinedBuffer.destroy();
+      this.combinedBufferSize = newData.byteLength;
+      this.combinedBuffer = this.device.createBuffer({
+        size: this.combinedBufferSize,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+    }
+
+    // Update data
+    this.device.queue.writeBuffer(this.combinedBuffer, 0, newData);
+  }
+
+  draw() {
+    this.updateGraphData();
+    const nodeCount = this.graph.node_count();
+    const edgeCount = this.graph.edge_count();
+    const edgesOffset = this.graph.get_edges_offset();
 
     const commandEncoder = this.device.createCommandEncoder();
     const renderPass = commandEncoder.beginRenderPass({
@@ -191,72 +340,29 @@ export class Renderer {
           storeOp: "store",
         },
       ],
+      depthStencilAttachment: {
+        view: this.depthTexture.createView(),
+        depthClearValue: 1.0,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      },
     });
 
-    renderPass.setPipeline(this.pipeline);
+    // Draw edges
+    renderPass.setPipeline(this.edgePipeline);
     renderPass.setBindGroup(0, this.bindGroup);
-    renderPass.setVertexBuffer(0, this.vertexBuffer);
+    renderPass.setVertexBuffer(0, this.combinedBuffer, edgesOffset * 4);
+    renderPass.setVertexBuffer(1, this.lineBuffer);
+    renderPass.draw(2, edgeCount); // 2 vertices per line, edgeCount instances
+
+    // Draw nodes
+    renderPass.setPipeline(this.nodePipeline);
+    renderPass.setBindGroup(0, this.bindGroup);
+    renderPass.setVertexBuffer(0, this.combinedBuffer);
     renderPass.setVertexBuffer(1, this.quadBuffer);
     renderPass.draw(6, nodeCount);
+
     renderPass.end();
-
     this.device.queue.submit([commandEncoder.finish()]);
-    // const nodes = this.graph.get_nodes();
-    // console.log("Node buffer:", nodes);
-    // console.log("Node count:", nodes.length / 7);
-    // nodes.forEach((_, i) => {
-    //   if (i % 7 === 3) {
-    //     // radius position in array
-    //     console.log(`Node ${Math.floor(i / 7)} radius:`, nodes[i]);
-    //   }
-    // });
-
-    // console.log("Node data", nodes);
-
-    // const quadData = new Float32Array(this.quadBuffer.getMappedRange());
-
-    // console.log("Quad data:", quadData);
-
-    // this.vertexBuffer = this.device.createBuffer({
-    //   size: nodes.byteLength,
-    //   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    //   mappedAtCreation: true,
-    // });
-
-    // new Float32Array(this.vertexBuffer.getMappedRange()).set(nodes);
-    // this.vertexBuffer.unmap();
-
-    // // this.vertexBuffer = this.device.createBuffer({
-    // //   size: vertexData.byteLength,
-    // //   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    // //   mappedAtCreation: true,
-    // // });
-    // // new Float32Array(this.vertexBuffer.getMappedRange()).set(vertexData);
-    // // this.vertexBuffer.unmap();
-
-    // const commandEncoder = this.device.createCommandEncoder();
-    // const renderPass = commandEncoder.beginRenderPass({
-    //   colorAttachments: [
-    //     {
-    //       view: this.context.getCurrentTexture().createView(),
-    //       clearValue: { r: 0, g: 0, b: 0, a: 1 },
-    //       loadOp: "clear",
-    //       storeOp: "store",
-    //     },
-    //   ],
-    // });
-
-    // renderPass.setPipeline(this.pipeline);
-    // renderPass.setBindGroup(0, this.bindGroup);
-    // renderPass.setVertexBuffer(0, this.vertexBuffer);
-    // renderPass.setVertexBuffer(1, this.quadBuffer); // quad vertices
-
-    // const nodeCount = this.graph.node_count();
-
-    // console.log("Node count:", nodeCount);
-    // renderPass.draw(nodeCount);
-    // renderPass.end();
-
-    // this.device.queue.submit([commandEncoder.finish()]);
   }
 }

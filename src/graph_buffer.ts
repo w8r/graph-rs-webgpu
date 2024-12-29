@@ -63,9 +63,8 @@ export class GraphBuffer {
 function parseHexColor(
   hex: string
 ): { r: number; g: number; b: number } | null {
-  if (!hex || (hex.length !== 4 && hex.length !== 7) || hex[0] !== "#") {
+  if (!hex || (hex.length !== 4 && hex.length !== 7) || hex[0] !== "#")
     return null; // Invalid format
-  }
 
   let r: string, g: string, b: string;
 
@@ -81,15 +80,11 @@ function parseHexColor(
     b = hex.substring(5, 7);
   }
 
-  try {
-    const red = parseInt(r, 16) / 255;
-    const green = parseInt(g, 16) / 255;
-    const blue = parseInt(b, 16) / 255;
+  const red = parseInt(r, 16) / 255;
+  const green = parseInt(g, 16) / 255;
+  const blue = parseInt(b, 16) / 255;
 
-    if (isNaN(red) || isNaN(green) || isNaN(blue)) return null;
+  if (isNaN(red) || isNaN(green) || isNaN(blue)) return null;
 
-    return { r: red, g: green, b: blue };
-  } catch (error) {
-    return null; // Parsing error
-  }
+  return { r: red, g: green, b: blue };
 }
