@@ -32,11 +32,13 @@ export class Renderer {
   constructor(private canvas: HTMLCanvasElement, private graph: Graph) {}
 
   private createLineBuffer() {
+    // 4 vertices to create a rectangle
+    // prettier-ignore
     const lineVertices = new Float32Array([
-      0,
-      0, // start point
-      1,
-      0, // end point
+      0, -0.5,  // bottom start
+      0,  0.5,  // top start
+      1, -0.5,  // bottom end
+      1,  0.5,  // top end
     ]);
 
     this.lineBuffer = this.device.createBuffer({
@@ -304,7 +306,10 @@ export class Renderer {
           },
         ],
       },
-      primitive: { topology: "line-list" },
+      primitive: {
+        topology: "triangle-strip",
+        stripIndexFormat: undefined,
+      },
       depthStencil: {
         format: "depth24plus",
         depthWriteEnabled: true,
@@ -359,7 +364,7 @@ export class Renderer {
     renderPass.setBindGroup(0, this.bindGroup);
     renderPass.setVertexBuffer(0, this.combinedBuffer, edgesOffset * 4);
     renderPass.setVertexBuffer(1, this.lineBuffer);
-    renderPass.draw(2, edgeCount); // 2 vertices per line, edgeCount instances
+    renderPass.draw(4, edgeCount); // 4 vertices per line, edgeCount instances
 
     // Draw nodes
     renderPass.setPipeline(this.nodePipeline);
