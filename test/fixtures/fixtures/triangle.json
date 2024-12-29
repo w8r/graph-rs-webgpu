@@ -1,0 +1,30 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "attributes": { "x": -15, "y": -15, "r": 12, "color": "#50e" }
+    },
+    { "id": 1, "attributes": { "x": 15, "y": -15, "r": 1.5, "color": "#f3a" } },
+    { "id": 2, "attributes": { "x": 0, "y": 15, "r": 5, "color": "#5ed" } }
+  ],
+  "edges": [
+    {
+      "id": 0,
+      "source": 0,
+      "target": 1,
+      "attributes": { "width": 0.5, "color": "#35e" }
+    },
+    {
+      "id": 1,
+      "source": 1,
+      "target": 2,
+      "attributes": { "width": 1, "color": "#e5e" }
+    },
+    {
+      "id": 2,
+      "source": 2,
+      "target": 0,
+      "attributes": { "width": 2, "color": "#40e" }
+    }
+  ]
+}
