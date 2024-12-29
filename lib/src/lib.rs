@@ -63,6 +63,48 @@ impl Graph {
         Graph { nodes, edges }
     }
 
+    pub fn set_graph(&mut self, data: &[f32]) {
+        self.nodes.clear();
+        self.edges.clear();
+
+        // First two numbers are counts
+        if data.len() < 2 {
+            return;
+        }
+
+        let node_count = data[0] as usize;
+        let edge_count = data[1] as usize;
+        let mut offset = 2;
+
+        // Process nodes
+        for _ in 0..node_count {
+            if offset + 7 <= data.len() {
+                self.nodes.push(Node {
+                    id: data[offset] as u32,
+                    x: data[offset + 1],
+                    y: data[offset + 2],
+                    r: data[offset + 3],
+                    color: [data[offset + 4], data[offset + 5], data[offset + 6]]
+                });
+                offset += 7;
+            }
+        }
+
+        // Process edges
+        for _ in 0..edge_count {
+            if offset + 7 <= data.len() {
+                self.edges.push(Edge {
+                    id: data[offset] as u32,
+                    source: data[offset + 1] as u32,
+                    target: data[offset + 2] as u32,
+                    width: data[offset + 3],
+                    color: [data[offset + 4], data[offset + 5], data[offset + 6]]
+                });
+                offset += 7;
+            }
+        }
+    }
+
     pub fn add_node(&mut self, id: u32, x: f32, y: f32, r: f32, color: &[f32]) -> bool {
         if self.nodes.iter().any(|n| n.id == id) {
             return false;

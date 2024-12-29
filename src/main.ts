@@ -1,30 +1,11 @@
-import init, { Graph } from "../lib/pkg";
-import { GraphBuffer } from "./graph_buffer";
-import { Renderer } from "./renderer/webgpu";
-import { GraphData } from "./types";
+import type { GraphData } from "./types";
+import { GraphViewer } from "./index";
 import "./styles.css";
 
-const x = await init();
+const graphViewer = new GraphViewer(document.querySelector("canvas")!);
+await graphViewer.init();
 
-console.log(x);
+const url = "test/fixtures/triangle.json";
+const initialData: GraphData = await fetch(url).then((r) => r.json());
 
-const resp = await fetch("test/fixtures/triangle.json");
-const initialData = (await resp.json()) as GraphData;
-
-const buffer = GraphBuffer.toBuffer(initialData);
-const graph = new Graph(buffer);
-
-// console.log(graph.add_node(5, 15, 15, 4, [0.5, 0.5, 0.5]));
-// console.log(graph.add_node(6, 15, 15, 4, [0.5, 0.5, 0.5]));
-// const nodes = graph.get_nodes();
-// const edges = graph.get_edges();
-
-// console.log(graph.node_count(), graph.edge_count());
-
-// graph.remove_node(6);
-console.log(graph.node_count(), graph.edge_count(), graph.get_nodes());
-
-const canvas = document.querySelector("canvas")!;
-const renderer = new Renderer(canvas, graph);
-await renderer.init();
-renderer.draw();
+await graphViewer.setData(initialData);
