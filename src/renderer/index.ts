@@ -1,4 +1,4 @@
-import { Graph } from "../../lib/pkg";
+import { Graph } from "../../lib/pkg/webgpu_graph_renderer";
 import vertexShaderSrc from "./vertex.wgsl?raw";
 import fragmentShaderSrc from "./fragment.wgsl?raw";
 import typesWgslSrc from "./types.wgsl?raw";

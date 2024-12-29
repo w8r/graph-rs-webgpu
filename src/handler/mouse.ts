@@ -1,5 +1,6 @@
 import { Camera } from "../camera";
 import { EventEmitter } from "eventemitter3";
+import { Point } from "../types";
 
 export class Mouse extends EventEmitter<{ update: [] }> {
   private isDragging = false;
@@ -42,11 +43,11 @@ export class Mouse extends EventEmitter<{ update: [] }> {
     this.lastMouseY = y;
   }
 
-  private getCanvasPosition(event: MouseEvent | WheelEvent) {
+  private getCanvasPosition(event: MouseEvent | WheelEvent): Point {
     const rect = this.rect;
     return {
-      x: (event.clientX - rect.left) * this.devicePixelRatio,
-      y: (event.clientY - rect.top) * this.devicePixelRatio,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
     };
   }
 

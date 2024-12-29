@@ -1,6 +1,6 @@
 import init, { Graph } from "../lib/pkg";
 import { GraphBuffer } from "./graph_buffer";
-import { Renderer } from "./renderer/webgpu";
+import { Renderer } from "./renderer";
 import { GraphData } from "./types";
 import { Camera } from "./camera";
 import { Mouse } from "./handler/mouse";

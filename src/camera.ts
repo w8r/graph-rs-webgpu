@@ -23,8 +23,8 @@ export class Camera {
   }
 
   move(dx: number, dy: number) {
-    this.position.x -= dx / this.zoom;
-    this.position.y -= dy / this.zoom;
+    this.position.x -= dx * this.zoom;
+    this.position.y -= dy * this.zoom;
   }
 
   worldToScreen(worldX: number, worldY: number): Point {
