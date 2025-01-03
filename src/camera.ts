@@ -9,36 +9,28 @@ export class Camera {
   minZoom: number = 0.1;
 
   zoomAroundPoint(zoomFactor: number, screenX: number, screenY: number) {
-    const worldPointBefore = this.screenToWorld(screenX, screenY);
-
-    this.zoom = Math.min(
-      this.maxZoom,
-      Math.max(this.minZoom, this.zoom * zoomFactor)
+    // Compute and clamp the proposed new zoom level
+    const newZoom = Math.max(
+      this.minZoom,
+      Math.min(this.maxZoom, this.zoom * zoomFactor)
     );
 
-    const worldPointAfter = this.screenToWorld(screenX, screenY);
+    // Convert the screen point to world coordinates
+    const worldX = this.position.x + (screenX - this.width / 2) * this.zoom;
+    const worldY = this.position.y - (screenY - this.height / 2) * this.zoom;
 
-    this.position.x += worldPointBefore.x - worldPointAfter.x;
-    this.position.y += worldPointBefore.y - worldPointAfter.y;
+    // Adjust the camera position to keep the world point under the mouse cursor
+    const zoomRatio = newZoom / this.zoom;
+    this.position.x = worldX - (worldX - this.position.x) * zoomRatio;
+    this.position.y = worldY - (worldY - this.position.y) * zoomRatio;
+
+    // Update the zoom
+    this.zoom = newZoom;
   }
 
   move(dx: number, dy: number) {
     this.position.x -= dx * this.zoom;
     this.position.y -= dy * this.zoom;
-  }
-
-  worldToScreen(worldX: number, worldY: number): Point {
-    return {
-      x: (worldX - this.position.x) * this.zoom + this.width / 2,
-      y: this.height / 2 - (worldY - this.position.y) * this.zoom,
-    };
-  }
-
-  screenToWorld(screenX: number, screenY: number): Point {
-    return {
-      x: (screenX - this.width / 2) / this.zoom + this.position.x,
-      y: -(screenY - this.height / 2) / this.zoom + this.position.y,
-    };
   }
 
   getScale() {
