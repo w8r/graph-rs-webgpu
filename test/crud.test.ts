@@ -22,26 +22,13 @@ describe("Graph CRUD Operations", () => {
     ],
   };
 
-  // beforeAll(async () => {
-  //   const wasmPath = path.resolve(
-  //     __dirname,
-  //     "../lib/pkg/webgpu_graph_renderer_bg.wasm"
-  //   );
-  //   const wasmModule = await WebAssembly.compile(fs.readFileSync(wasmPath));
-  //   const instance = await WebAssembly.instantiate(wasmModule, {
-  //     // Add any required imports here
-  //   });
-  //   Graph = instance.exports;
-  // });
-
   beforeAll(async () => {
-    console.log(init.toString());
     const wasmPath = path.resolve(
       __dirname,
       "../lib/pkg/webgpu_graph_renderer_bg.wasm"
     );
     const wasmBuffer = fs.readFileSync(wasmPath);
-    await init(wasmBuffer);
+    await init({ module_or_path: wasmBuffer });
   });
 
   it("creates graph from buffer", () => {

@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "rsw watch & vite",
     "rsw": "rsw",
-    "build": "rsw build && npm run fe:build",
-    "fe:build": "tsc && vite build",
+    "prebuild": "prettier --write ./src/**/*.ts lib/**/*.rs",
+    "build": "npm run build:wasm && npm run build:client",
+    "build:wasm": "rsw build",
+    "build:client": "tsc && vite build",
     "test": "vitest run",
     "predeploy": "npm run build && mkdir -p dist/test/fixtures && cp -R test/fixtures dist/test/",
     "deploy": "gh-pages -d dist --nojekyll"

@@ -22,7 +22,6 @@ export class GraphBuffer {
     // Convert nodes
     data.nodes.forEach((node) => {
       const color = parseHexColor(node.attributes.color)!;
-      console.log(color);
       buffer.set(
         [
           node.id,
