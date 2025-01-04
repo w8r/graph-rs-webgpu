@@ -85,7 +85,7 @@ export class Mouse extends EventEmitter<{ update: [] }> {
     const { x, y } = this.getCanvasPosition(event);
 
     // Calculate target zoom using momentum
-    const zoomFactor = 1 - event.deltaY * 0.01;
+    const zoomFactor = 1 + event.deltaY * 0.01;
     this.camera.zoomAroundPoint(zoomFactor, x, y);
     this.emit('update');
   };

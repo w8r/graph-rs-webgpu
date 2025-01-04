@@ -223,9 +223,14 @@ export class Renderer {
             blend: {
               color: {
                 srcFactor: 'src-alpha',
-                dstFactor: 'one-minus-src-alpha'
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add'
               },
-              alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' }
+              alpha: {
+                srcFactor: 'one',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add'
+              }
             }
           }
         ]
@@ -234,7 +239,7 @@ export class Renderer {
       depthStencil: {
         format: 'depth24plus',
         depthWriteEnabled: true,
-        depthCompare: 'less'
+        depthCompare: 'less-equal'
       }
     });
   }
@@ -337,7 +342,7 @@ export class Renderer {
       colorAttachments: [
         {
           view: this.context.getCurrentTexture().createView(),
-          clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          clearValue: { r: 0, g: 0, b: 0.1, a: 1 },
           loadOp: 'clear',
           storeOp: 'store'
         }
@@ -400,4 +405,13 @@ export class Renderer {
       Object.values(bufferSizes).reduce((a, b) => a + b, 0)
     );
   }
+
+  public destroy = () => {
+    this.viewProjBuffer.destroy();
+    this.combinedBuffer.destroy();
+    this.quadBuffer.destroy();
+    this.lineBuffer.destroy();
+    this.depthTexture.destroy();
+    this.bufferPool.cleanup();
+  };
 }
