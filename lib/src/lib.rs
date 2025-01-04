@@ -28,7 +28,6 @@ struct Edge {
 
 #[wasm_bindgen]
 impl Graph {
-
     #[wasm_bindgen(constructor)]
     pub fn new(buffer: &[f32]) -> Graph {
         let node_count = buffer[0] as usize;
@@ -39,7 +38,7 @@ impl Graph {
 
         let mut offset = 2;
 
-        let mut nodes_lookup: BTreeMap<u32, usize>  = BTreeMap::new();
+        let mut nodes_lookup: BTreeMap<u32, usize> = BTreeMap::new();
 
         // Parse nodes
         for _ in 0..node_count {
@@ -56,7 +55,6 @@ impl Graph {
         }
 
         // lookup table to find node index by node id. Node id can by a random integer between 0 and 2^32
-
 
         // Parse edges
         for _ in 0..edge_count {
@@ -96,7 +94,7 @@ impl Graph {
                     x: data[offset + 1],
                     y: data[offset + 2],
                     r: data[offset + 3],
-                    color: [data[offset + 4], data[offset + 5], data[offset + 6]]
+                    color: [data[offset + 4], data[offset + 5], data[offset + 6]],
                 });
                 self.nodes_lookup.insert(id, self.nodes.len() - 1);
                 offset += 7;
@@ -111,7 +109,7 @@ impl Graph {
                     source: data[offset + 1] as u32,
                     target: data[offset + 2] as u32,
                     width: data[offset + 3],
-                    color: [data[offset + 4], data[offset + 5], data[offset + 6]]
+                    color: [data[offset + 4], data[offset + 5], data[offset + 6]],
                 });
                 offset += 7;
             }
@@ -133,7 +131,14 @@ impl Graph {
         true
     }
 
-    pub fn add_edge(&mut self, id: u32, source: u32, target: u32, width: f32, color: &[f32]) -> bool {
+    pub fn add_edge(
+        &mut self,
+        id: u32,
+        source: u32,
+        target: u32,
+        width: f32,
+        color: &[f32]
+    ) -> bool {
         if self.edges.iter().any(|e| e.id == id) {
             return false;
         }
@@ -192,15 +197,17 @@ impl Graph {
     pub fn get_nodes(&self) -> js_sys::Float32Array {
         let mut data = Vec::with_capacity(self.nodes.len() * 7);
         for node in &self.nodes {
-            data.extend_from_slice(&[
-                node.id as f32,
-                node.x,
-                node.y,
-                node.r,
-                node.color[0],
-                node.color[1],
-                node.color[2],
-            ]);
+            data.extend_from_slice(
+                &[
+                    node.id as f32,
+                    node.x,
+                    node.y,
+                    node.r,
+                    node.color[0],
+                    node.color[1],
+                    node.color[2],
+                ]
+            );
         }
         unsafe { js_sys::Float32Array::view(&data) }
     }
@@ -208,25 +215,27 @@ impl Graph {
     pub fn get_edges(&self) -> js_sys::Float32Array {
         let mut data = Vec::with_capacity(self.edges.len() * 7);
         for edge in &self.edges {
-            data.extend_from_slice(&[
-                edge.id as f32,
-                edge.source as f32,
-                edge.target as f32,
-                edge.width,
-                edge.color[0],
-                edge.color[1],
-                edge.color[2],
-            ]);
+            data.extend_from_slice(
+                &[
+                    edge.id as f32,
+                    edge.source as f32,
+                    edge.target as f32,
+                    edge.width,
+                    edge.color[0],
+                    edge.color[1],
+                    edge.color[2],
+                ]
+            );
         }
         unsafe { js_sys::Float32Array::view(&data) }
     }
 
     pub fn node_count(&self) -> usize {
-      self.nodes.len()
+        self.nodes.len()
     }
 
     pub fn edge_count(&self) -> usize {
-      self.edges.len()
+        self.edges.len()
     }
 
     pub fn get_buffer(&self) -> js_sys::Float32Array {
@@ -234,15 +243,17 @@ impl Graph {
 
         // Add nodes (type = 0)
         for node in &self.nodes {
-            buffer.extend_from_slice(&[
-                0.0,    // type identifier for node
-                node.x,
-                node.y,
-                node.r,
-                node.color[0],
-                node.color[1],
-                node.color[2]
-            ]);
+            buffer.extend_from_slice(
+                &[
+                    0.0, // type identifier for node
+                    node.x,
+                    node.y,
+                    node.r,
+                    node.color[0],
+                    node.color[1],
+                    node.color[2],
+                ]
+            );
         }
 
         // Add edges (type = 1)
@@ -253,18 +264,19 @@ impl Graph {
             let source = self.nodes.get(*source_index.unwrap()).unwrap();
             let target = self.nodes.get(*target_index.unwrap()).unwrap();
 
-
-            buffer.extend_from_slice(&[
-                1.0,            // type (edge)
-                source.x,       // source x
-                source.y,       // source y
-                target.x,       // target x
-                target.y,       // target y
-                edge.width,
-                edge.color[0],
-                edge.color[1],
-                edge.color[2]
-            ]);
+            buffer.extend_from_slice(
+                &[
+                    1.0, // type (edge)
+                    source.x, // source x
+                    source.y, // source y
+                    target.x, // target x
+                    target.y, // target y
+                    edge.width,
+                    edge.color[0],
+                    edge.color[1],
+                    edge.color[2],
+                ]
+            );
         }
 
         unsafe { js_sys::Float32Array::view(&buffer) }
@@ -289,6 +301,6 @@ impl Graph {
     }
 
     pub fn get_edges_offset(&self) -> usize {
-        self.nodes.len() * 7  // each node has 7 floats
+        self.nodes.len() * 7 // each node has 7 floats
     }
 }
