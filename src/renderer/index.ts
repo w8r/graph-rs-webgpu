@@ -1,4 +1,5 @@
 import { Graph } from '../../lib/pkg/webgpu_graph_renderer';
+import { BufferPool } from './buffer_pool';
 import vertexShaderSrc from './vertex.wgsl?raw';
 import fragmentShaderSrc from './fragment.wgsl?raw';
 import typesWgslSrc from './types.wgsl?raw';
@@ -28,6 +29,8 @@ export class Renderer {
 
   private nodePipeline!: GPURenderPipeline;
   private edgePipeline!: GPURenderPipeline;
+
+  private bufferPool!: BufferPool;
 
   constructor(private canvas: HTMLCanvasElement, private graph: Graph) {}
 
@@ -97,6 +100,8 @@ export class Renderer {
     const adapter = await navigator.gpu.requestAdapter();
     this.device = await adapter!.requestDevice();
     this.context = this.canvas.getContext('webgpu')!;
+
+    this.bufferPool = new BufferPool(this.device);
 
     const vertexShader = processShader(vertexShaderSrc);
     const fragmentShader = processShader(fragmentShaderSrc);
@@ -305,12 +310,14 @@ export class Renderer {
 
     // If data size changed, recreate buffer
     if (newData.byteLength > this.combinedBufferSize) {
-      this.combinedBuffer.destroy();
+      //this.combinedBuffer.destroy();
+      // Instead of destroying, release to pool
+      this.bufferPool.releaseBuffer(this.combinedBuffer);
       this.combinedBufferSize = newData.byteLength;
-      this.combinedBuffer = this.device.createBuffer({
-        size: this.combinedBufferSize,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-      });
+      this.combinedBuffer = this.bufferPool.acquireBuffer(
+        this.combinedBufferSize,
+        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+      );
     }
 
     // Update data
@@ -376,5 +383,21 @@ export class Renderer {
 
   public updateViewProj(matrix: Float32Array) {
     this.device.queue.writeBuffer(this.viewProjBuffer, 0, matrix);
+  }
+
+  public debugMemoryUsage() {
+    const bufferSizes = {
+      combinedBuffer: this.combinedBufferSize,
+      viewProj: 64, // 4x4 matrix * 4 bytes
+      quad: this.quadBuffer.size,
+      line: this.lineBuffer.size,
+      depth: this.canvas.width * this.canvas.height * 4 // depth texture
+    };
+
+    console.log('GPU Buffer Sizes (bytes):', bufferSizes);
+    console.log(
+      'Total:',
+      Object.values(bufferSizes).reduce((a, b) => a + b, 0)
+    );
   }
 }
