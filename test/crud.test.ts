@@ -1,37 +1,37 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import init, { Graph } from "../lib/pkg";
-import { GraphBuffer } from "../src/graph_buffer";
-import path from "path";
-import fs from "fs";
+import { describe, it, expect, beforeAll } from 'vitest';
+import init, { Graph } from '../lib/pkg';
+import { GraphBuffer } from '../src/graph_buffer';
+import path from 'path';
+import fs from 'fs';
 
 const toColor = (rgb: number[]) => new Float32Array(rgb);
 
-describe("Graph CRUD Operations", () => {
+describe('Graph CRUD Operations', () => {
   const initialData = {
     nodes: [
-      { id: 0, attributes: { x: 0, y: 0, r: 5, color: "#ff0000" } },
-      { id: 1, attributes: { x: 10, y: 10, r: 3, color: "#00ff00" } },
+      { id: 0, attributes: { x: 0, y: 0, r: 5, color: '#ff0000' } },
+      { id: 1, attributes: { x: 10, y: 10, r: 3, color: '#00ff00' } }
     ],
     edges: [
       {
         id: 0,
         source: 0,
         target: 1,
-        attributes: { width: 1, color: "#0000ff" },
-      },
-    ],
+        attributes: { width: 1, color: '#0000ff' }
+      }
+    ]
   };
 
   beforeAll(async () => {
     const wasmPath = path.resolve(
       __dirname,
-      "../lib/pkg/webgpu_graph_renderer_bg.wasm"
+      '../lib/pkg/webgpu_graph_renderer_bg.wasm'
     );
     const wasmBuffer = fs.readFileSync(wasmPath);
     await init({ module_or_path: wasmBuffer });
   });
 
-  it("creates graph from buffer", () => {
+  it('creates graph from buffer', () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
     const nodes = graph.get_nodes();
@@ -41,7 +41,7 @@ describe("Graph CRUD Operations", () => {
     expect(edges.length).toBe(7); // 1 edge * 7 values
   });
 
-  it("adds a new node", () => {
+  it('adds a new node', () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
@@ -52,7 +52,7 @@ describe("Graph CRUD Operations", () => {
     expect(nodes.length).toBe(21); // 3 nodes * 7 values
   });
 
-  it("prevents duplicate node ids", () => {
+  it('prevents duplicate node ids', () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
@@ -60,7 +60,7 @@ describe("Graph CRUD Operations", () => {
     expect(result).toBe(false);
   });
 
-  it("adds a new edge", () => {
+  it('adds a new edge', () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
@@ -71,7 +71,7 @@ describe("Graph CRUD Operations", () => {
     expect(edges.length).toBe(14); // 2 edges * 7 values
   });
 
-  it("updates node attributes", () => {
+  it('updates node attributes', () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
@@ -84,7 +84,7 @@ describe("Graph CRUD Operations", () => {
     expect(nodes[5]).toBe(0); // green
   });
 
-  it("updates edge attributes", () => {
+  it('updates edge attributes', () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
@@ -97,7 +97,7 @@ describe("Graph CRUD Operations", () => {
     expect(edges[5]).toBe(1); // green
   });
 
-  it("removes a node and its connected edges", () => {
+  it('removes a node and its connected edges', () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
@@ -111,7 +111,7 @@ describe("Graph CRUD Operations", () => {
     expect(edges.length).toBe(0); // edge should be removed as it was connected
   });
 
-  it("removes an edge", () => {
+  it('removes an edge', () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
@@ -122,7 +122,7 @@ describe("Graph CRUD Operations", () => {
     expect(edges.length).toBe(0);
   });
 
-  it("handles invalid updates", () => {
+  it('handles invalid updates', () => {
     const buffer = GraphBuffer.toBuffer(initialData);
     const graph = new Graph(buffer);
 
@@ -132,20 +132,20 @@ describe("Graph CRUD Operations", () => {
     expect(graph.remove_edge(999)).toBe(false);
   });
 
-  it("counts nodes and edges", () => {
+  it('counts nodes and edges', () => {
     const buffer = GraphBuffer.toBuffer({
       nodes: [
-        { id: 0, attributes: { x: 0, y: 0, r: 5, color: "#ff0000" } },
-        { id: 1, attributes: { x: 10, y: 10, r: 3, color: "#00ff00" } },
+        { id: 0, attributes: { x: 0, y: 0, r: 5, color: '#ff0000' } },
+        { id: 1, attributes: { x: 10, y: 10, r: 3, color: '#00ff00' } }
       ],
       edges: [
         {
           id: 0,
           source: 0,
           target: 1,
-          attributes: { width: 1, color: "#0000ff" },
-        },
-      ],
+          attributes: { width: 1, color: '#0000ff' }
+        }
+      ]
     });
 
     const graph = new Graph(buffer);

@@ -5,13 +5,19 @@
   "scripts": {
     "dev": "rsw watch & vite",
     "rsw": "rsw",
-    "prebuild": "prettier --write ./src/**/*.ts lib/**/*.rs",
+    "prebuild": "prettier --write \"src/**/*.{ts,json}\" \"test/**/*.ts\" \"lib/src/**/*.rs\"",
     "build": "npm run build:wasm && npm run build:client",
     "build:wasm": "rsw build",
     "build:client": "tsc && vite build",
     "test": "vitest run",
     "predeploy": "npm run build && mkdir -p dist/test/fixtures && cp -R test/fixtures dist/test/",
     "deploy": "gh-pages -d dist --nojekyll"
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "none",
+    "tabWidth": 2
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

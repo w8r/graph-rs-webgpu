@@ -1,4 +1,4 @@
-import { GraphData } from "./types";
+import { GraphData } from './types';
 
 // Flat array structure for Rust
 export class GraphBuffer {
@@ -30,7 +30,7 @@ export class GraphBuffer {
           node.attributes.r,
           color.r,
           color.g,
-          color.b,
+          color.b
         ],
         offset
       );
@@ -48,7 +48,7 @@ export class GraphBuffer {
           edge.attributes.width,
           color.r,
           color.g,
-          color.b,
+          color.b
         ],
         offset
       );
@@ -62,7 +62,7 @@ export class GraphBuffer {
 function parseHexColor(
   hex: string
 ): { r: number; g: number; b: number } | null {
-  if (!hex || (hex.length !== 4 && hex.length !== 7) || hex[0] !== "#")
+  if (!hex || (hex.length !== 4 && hex.length !== 7) || hex[0] !== '#')
     return null; // Invalid format
 
   let r: string, g: string, b: string;

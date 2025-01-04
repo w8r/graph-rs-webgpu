@@ -1,6 +1,6 @@
-import { Camera } from "../camera";
-import { EventEmitter } from "eventemitter3";
-import { Point } from "../types";
+import { Camera } from '../camera';
+import { EventEmitter } from 'eventemitter3';
+import { Point } from '../types';
 
 export class Mouse extends EventEmitter<{ update: [] }> {
   private isDragging = false;
@@ -16,7 +16,7 @@ export class Mouse extends EventEmitter<{ update: [] }> {
 
     this.updateCameraDimensions();
 
-    window.addEventListener("resize", this.updateRect);
+    window.addEventListener('resize', this.updateRect);
   }
 
   updateCameraDimensions() {
@@ -30,11 +30,11 @@ export class Mouse extends EventEmitter<{ update: [] }> {
   };
 
   private setupEventHandlers() {
-    this.canvas.addEventListener("mousedown", this.onMouseDown);
-    this.canvas.addEventListener("mousemove", this.onMouseMove);
-    this.canvas.addEventListener("mouseup", this.onMouseUp);
-    this.canvas.addEventListener("mouseleave", this.onMouseUp);
-    this.canvas.addEventListener("wheel", this.onWheel, { passive: false });
+    this.canvas.addEventListener('mousedown', this.onMouseDown);
+    this.canvas.addEventListener('mousemove', this.onMouseMove);
+    this.canvas.addEventListener('mouseup', this.onMouseUp);
+    this.canvas.addEventListener('mouseleave', this.onMouseUp);
+    this.canvas.addEventListener('wheel', this.onWheel, { passive: false });
   }
 
   private setXY(event: MouseEvent) {
@@ -47,14 +47,14 @@ export class Mouse extends EventEmitter<{ update: [] }> {
     const rect = this.rect;
     return {
       x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      y: event.clientY - rect.top
     };
   }
 
   private onMouseDown = (event: MouseEvent) => {
     this.isDragging = true;
     this.setXY(event);
-    this.canvas.style.cursor = "grabbing";
+    this.canvas.style.cursor = 'grabbing';
   };
 
   private onMouseMove = (event: MouseEvent) => {
@@ -71,12 +71,12 @@ export class Mouse extends EventEmitter<{ update: [] }> {
     this.camera.move(dx, -dy);
 
     this.setXY(event);
-    this.emit("update");
+    this.emit('update');
   };
 
   private onMouseUp = () => {
     this.isDragging = false;
-    this.canvas.style.cursor = "grab";
+    this.canvas.style.cursor = 'grab';
   };
 
   private onWheel = (event: WheelEvent) => {
@@ -84,19 +84,18 @@ export class Mouse extends EventEmitter<{ update: [] }> {
 
     const { x, y } = this.getCanvasPosition(event);
 
-    const zoomFactor = event.deltaY > 0 ? 0.99 : 1.01;
-
+    // Calculate target zoom using momentum
+    const zoomFactor = 1 - event.deltaY * 0.01;
     this.camera.zoomAroundPoint(zoomFactor, x, y);
-
-    this.emit("update");
+    this.emit('update');
   };
 
   destroy() {
-    this.canvas.removeEventListener("mousedown", this.onMouseDown);
-    this.canvas.removeEventListener("mousemove", this.onMouseMove);
-    this.canvas.removeEventListener("mouseup", this.onMouseUp);
-    this.canvas.removeEventListener("mouseleave", this.onMouseUp);
-    this.canvas.removeEventListener("wheel", this.onWheel);
-    window.removeEventListener("resize", this.updateRect);
+    this.canvas.removeEventListener('mousedown', this.onMouseDown);
+    this.canvas.removeEventListener('mousemove', this.onMouseMove);
+    this.canvas.removeEventListener('mouseup', this.onMouseUp);
+    this.canvas.removeEventListener('mouseleave', this.onMouseUp);
+    this.canvas.removeEventListener('wheel', this.onWheel);
+    window.removeEventListener('resize', this.updateRect);
   }
 }

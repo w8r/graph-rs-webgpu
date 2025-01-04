@@ -1,18 +1,18 @@
-import { Graph } from "../../lib/pkg/webgpu_graph_renderer";
-import vertexShaderSrc from "./vertex.wgsl?raw";
-import fragmentShaderSrc from "./fragment.wgsl?raw";
-import typesWgslSrc from "./types.wgsl?raw";
+import { Graph } from '../../lib/pkg/webgpu_graph_renderer';
+import vertexShaderSrc from './vertex.wgsl?raw';
+import fragmentShaderSrc from './fragment.wgsl?raw';
+import typesWgslSrc from './types.wgsl?raw';
 
 // Replace #include directives
 const processShader = (source: string) => {
   return source.replace(/#include "([^"]+)"/g, (_, path) => {
-    if (path === "types.wgsl") return typesWgslSrc;
+    if (path === 'types.wgsl') return typesWgslSrc;
     throw new Error(`Unknown include: ${path}`);
   });
 };
 
 const getPixelRatio = () =>
-  typeof window !== "undefined" ? window.devicePixelRatio : 1;
+  typeof window !== 'undefined' ? window.devicePixelRatio : 1;
 
 export class Renderer {
   private device!: GPUDevice;
@@ -44,20 +44,17 @@ export class Renderer {
     this.lineBuffer = this.device.createBuffer({
       size: lineVertices.byteLength,
       usage: GPUBufferUsage.VERTEX,
-      mappedAtCreation: true,
+      mappedAtCreation: true
     });
     new Float32Array(this.lineBuffer.getMappedRange()).set(lineVertices);
     this.lineBuffer.unmap();
   }
 
-  private createDepthTexture() {
+  private createDepthTexture(width: number, height: number) {
     this.depthTexture = this.device.createTexture({
-      size: {
-        width: this.canvas.width,
-        height: this.canvas.height,
-      },
-      format: "depth24plus",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      size: { width, height },
+      format: 'depth24plus',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
   }
 
@@ -65,7 +62,7 @@ export class Renderer {
     this.viewProjBuffer = this.device.createBuffer({
       size: view.byteLength,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      mappedAtCreation: true,
+      mappedAtCreation: true
     });
     new Float32Array(this.viewProjBuffer.getMappedRange()).set(view);
     this.viewProjBuffer.unmap();
@@ -86,35 +83,41 @@ export class Renderer {
     this.quadBuffer = this.device.createBuffer({
       size: quadVertices.byteLength,
       usage: GPUBufferUsage.VERTEX,
-      mappedAtCreation: true,
+      mappedAtCreation: true
     });
     new Float32Array(this.quadBuffer.getMappedRange()).set(quadVertices);
     this.quadBuffer.unmap();
   }
 
+  static isSupported() {
+    return 'gpu' in navigator;
+  }
+
   async init(view: Float32Array) {
     const adapter = await navigator.gpu.requestAdapter();
     this.device = await adapter!.requestDevice();
-    this.context = this.canvas.getContext("webgpu")!;
+    this.context = this.canvas.getContext('webgpu')!;
 
     const vertexShader = processShader(vertexShaderSrc);
     const fragmentShader = processShader(fragmentShaderSrc);
 
     const devicePixelRatio = getPixelRatio();
 
-    this.canvas.width = this.canvas.clientWidth * devicePixelRatio;
-    this.canvas.height = this.canvas.clientHeight * devicePixelRatio;
+    const width = (this.canvas.width =
+      this.canvas.clientWidth * devicePixelRatio);
+    const height = (this.canvas.height =
+      this.canvas.clientHeight * devicePixelRatio);
 
     this.context.configure({
       device: this.device,
       format: navigator.gpu.getPreferredCanvasFormat(),
-      alphaMode: "premultiplied",
+      alphaMode: 'premultiplied'
     });
 
     this.createQuadBuffer();
     this.createLineBuffer();
     this.createViewProjBuffer(view);
-    this.createDepthTexture();
+    this.createDepthTexture(width, height);
 
     // Create bind group layout
     const bindGroupLayout = this.device.createBindGroupLayout({
@@ -122,9 +125,9 @@ export class Renderer {
         {
           binding: 0,
           visibility: GPUShaderStage.VERTEX,
-          buffer: { type: "uniform" },
-        },
-      ],
+          buffer: { type: 'uniform' }
+        }
+      ]
     });
 
     // Create bind group
@@ -133,21 +136,21 @@ export class Renderer {
       entries: [
         {
           binding: 0,
-          resource: { buffer: this.viewProjBuffer },
-        },
-      ],
+          resource: { buffer: this.viewProjBuffer }
+        }
+      ]
     });
 
     // Create pipeline layout
     const pipelineLayout = this.device.createPipelineLayout({
-      bindGroupLayouts: [bindGroupLayout],
+      bindGroupLayouts: [bindGroupLayout]
     });
 
     const vertexShaderModule = this.device.createShaderModule({
-      code: vertexShader,
+      code: vertexShader
     });
     const fragmentShaderModule = this.device.createShaderModule({
-      code: fragmentShader,
+      code: fragmentShader
     });
 
     this.createNodePipeline(
@@ -166,7 +169,7 @@ export class Renderer {
     this.combinedBufferSize = initialBuffer.byteLength;
     this.combinedBuffer = this.device.createBuffer({
       size: this.combinedBufferSize,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     });
 
     // Initial upload
@@ -182,52 +185,52 @@ export class Renderer {
       layout: pipelineLayout,
       vertex: {
         module: vertexShaderModule,
-        entryPoint: "vs_node",
+        entryPoint: 'vs_node',
         buffers: [
           {
             // Node data from combined buffer (instanced)
             arrayStride: 28, // 7 floats * 4 bytes
-            stepMode: "instance",
+            stepMode: 'instance',
             attributes: [
-              { shaderLocation: 0, offset: 0, format: "float32" }, // type
-              { shaderLocation: 1, offset: 4, format: "float32x2" }, // position
-              { shaderLocation: 2, offset: 12, format: "float32" }, // radius
-              { shaderLocation: 3, offset: 16, format: "float32x3" }, // color
-            ],
+              { shaderLocation: 0, offset: 0, format: 'float32' }, // type
+              { shaderLocation: 1, offset: 4, format: 'float32x2' }, // position
+              { shaderLocation: 2, offset: 12, format: 'float32' }, // radius
+              { shaderLocation: 3, offset: 16, format: 'float32x3' } // color
+            ]
           },
           {
             // Quad vertices (same as before)
             arrayStride: 16, // 4 floats * 4 bytes
-            stepMode: "vertex",
+            stepMode: 'vertex',
             attributes: [
-              { shaderLocation: 4, offset: 0, format: "float32x2" }, // position
-              { shaderLocation: 5, offset: 8, format: "float32x2" }, // uv
-            ],
-          },
-        ],
+              { shaderLocation: 4, offset: 0, format: 'float32x2' }, // position
+              { shaderLocation: 5, offset: 8, format: 'float32x2' } // uv
+            ]
+          }
+        ]
       },
       fragment: {
         module: fragmentShaderModule,
-        entryPoint: "fs_node",
+        entryPoint: 'fs_node',
         targets: [
           {
             format: navigator.gpu.getPreferredCanvasFormat(),
             blend: {
               color: {
-                srcFactor: "src-alpha",
-                dstFactor: "one-minus-src-alpha",
+                srcFactor: 'src-alpha',
+                dstFactor: 'one-minus-src-alpha'
               },
-              alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-            },
-          },
-        ],
+              alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' }
+            }
+          }
+        ]
       },
-      primitive: { topology: "triangle-list" },
+      primitive: { topology: 'triangle-list' },
       depthStencil: {
-        format: "depth24plus",
+        format: 'depth24plus',
         depthWriteEnabled: true,
-        depthCompare: "less",
-      },
+        depthCompare: 'less'
+      }
     });
   }
 
@@ -240,60 +243,60 @@ export class Renderer {
       layout: pipelineLayout,
       vertex: {
         module: vertexShaderModule,
-        entryPoint: "vs_edge",
+        entryPoint: 'vs_edge',
         buffers: [
           {
             // Edge instance data
             arrayStride: 36,
-            stepMode: "instance",
+            stepMode: 'instance',
             attributes: [
-              { shaderLocation: 0, offset: 0, format: "float32" }, // type
-              { shaderLocation: 1, offset: 4, format: "float32x2" }, // source pos
-              { shaderLocation: 2, offset: 12, format: "float32x2" }, // target pos
-              { shaderLocation: 3, offset: 20, format: "float32" }, // width
-              { shaderLocation: 4, offset: 24, format: "float32x3" }, // color
-            ],
+              { shaderLocation: 0, offset: 0, format: 'float32' }, // type
+              { shaderLocation: 1, offset: 4, format: 'float32x2' }, // source pos
+              { shaderLocation: 2, offset: 12, format: 'float32x2' }, // target pos
+              { shaderLocation: 3, offset: 20, format: 'float32' }, // width
+              { shaderLocation: 4, offset: 24, format: 'float32x3' } // color
+            ]
           },
           {
             // Line vertex data
             arrayStride: 8,
-            stepMode: "vertex",
+            stepMode: 'vertex',
             attributes: [
-              { shaderLocation: 5, offset: 0, format: "float32x2" }, // position
-            ],
-          },
-        ],
+              { shaderLocation: 5, offset: 0, format: 'float32x2' } // position
+            ]
+          }
+        ]
       },
       fragment: {
         module: fragmentShaderModule,
-        entryPoint: "fs_edge",
+        entryPoint: 'fs_edge',
         targets: [
           {
             format: navigator.gpu.getPreferredCanvasFormat(),
             blend: {
               color: {
-                srcFactor: "src-alpha",
-                dstFactor: "one-minus-src-alpha",
-                operation: "add",
+                srcFactor: 'src-alpha',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add'
               },
               alpha: {
-                srcFactor: "one",
-                dstFactor: "one-minus-src-alpha",
-                operation: "add",
-              },
-            },
-          },
-        ],
+                srcFactor: 'one',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add'
+              }
+            }
+          }
+        ]
       },
       primitive: {
-        topology: "triangle-strip",
-        stripIndexFormat: undefined,
+        topology: 'triangle-strip',
+        stripIndexFormat: undefined
       },
       depthStencil: {
-        format: "depth24plus",
+        format: 'depth24plus',
         depthWriteEnabled: true,
-        depthCompare: "less",
-      },
+        depthCompare: 'less'
+      }
     });
   }
 
@@ -306,7 +309,7 @@ export class Renderer {
       this.combinedBufferSize = newData.byteLength;
       this.combinedBuffer = this.device.createBuffer({
         size: this.combinedBufferSize,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
       });
     }
 
@@ -320,22 +323,24 @@ export class Renderer {
     const edgeCount = this.graph.edge_count();
     const edgesOffset = this.graph.get_edges_offset();
 
+    if (nodeCount === 0 && edgeCount === 0) return;
+
     const commandEncoder = this.device.createCommandEncoder();
     const renderPass = commandEncoder.beginRenderPass({
       colorAttachments: [
         {
           view: this.context.getCurrentTexture().createView(),
           clearValue: { r: 0, g: 0, b: 0, a: 1 },
-          loadOp: "clear",
-          storeOp: "store",
-        },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }
       ],
       depthStencilAttachment: {
         view: this.depthTexture.createView(),
         depthClearValue: 1.0,
-        depthLoadOp: "clear",
-        depthStoreOp: "store",
-      },
+        depthLoadOp: 'clear',
+        depthStoreOp: 'store'
+      }
     });
 
     // Draw edges
@@ -354,6 +359,19 @@ export class Renderer {
 
     renderPass.end();
     this.device.queue.submit([commandEncoder.finish()]);
+  }
+
+  public resize(width: number, height: number) {
+    // Recreate depth texture with new size
+    this.depthTexture.destroy();
+    this.createDepthTexture(width, height);
+
+    // Update context configuration
+    this.context.configure({
+      device: this.device,
+      format: navigator.gpu.getPreferredCanvasFormat(),
+      alphaMode: 'premultiplied'
+    });
   }
 
   public updateViewProj(matrix: Float32Array) {

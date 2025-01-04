@@ -1,12 +1,12 @@
-import { Point } from "./types";
+import { Point } from './types';
 
 export class Camera {
   position: Point = { x: 0, y: 0 };
   zoom: number = 1;
   width: number = 0;
   height: number = 0;
-  maxZoom: number = 10;
-  minZoom: number = 0.1;
+  maxZoom: number = 1e3;
+  minZoom: number = 1e-3;
 
   zoomAroundPoint(zoomFactor: number, screenX: number, screenY: number) {
     // Compute and clamp the proposed new zoom level
@@ -49,11 +49,11 @@ export class Camera {
   }
 
   debugState() {
-    console.log("Camera State:", {
+    console.log('Camera State:', {
       position: this.position,
       zoom: this.zoom,
       width: this.width,
-      height: this.height,
+      height: this.height
     });
   }
 }
